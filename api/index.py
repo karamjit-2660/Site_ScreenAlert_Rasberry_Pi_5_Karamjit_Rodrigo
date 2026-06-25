@@ -8,7 +8,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from AuthController import auth_bp
-#from MensagensController import mensagens_bp
+from MensagensController import mensagens_bp
 #from HorarioController import horario_bp
 #from HistoricoController import historico_bp
 
@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 
 app.register_blueprint(auth_bp)
-#app.register_blueprint(mensagens_bp)
+app.register_blueprint(mensagens_bp)
 #app.register_blueprint(historico_bp)
 #app.register_blueprint(horario_bp)
 

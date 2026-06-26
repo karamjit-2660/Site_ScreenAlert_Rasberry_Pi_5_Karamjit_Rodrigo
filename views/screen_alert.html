@@ -45,6 +45,12 @@
                             </a>
                         </li>
 
+                        <li class="nav-item mb-2">
+                            <a class="nav-link text-white" href="#" onclick="logout()">
+                                🚪 Logout
+                            </a>
+                        </li>
+
                     </ul>
 
                 </div>
@@ -125,6 +131,16 @@
         const token = localStorage.getItem("token");
 
         if (!token) {
+            window.location.replace("login.html");
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("erro") === "1") {
+            toastr.error("Faça login primeiro!");
+        }
+
+        function logout() {
+            localStorage.clear();
             window.location.href = "login.html";
         }
 
@@ -144,7 +160,7 @@
 
         async function buscarMensagem() {
             try {
-                const res = await fetch("http://192.168.1.21:5000/mensagens", {
+                const res = await fetch("http://192.168.1.100:5000/mensagens", {
                     headers: { "Authorization": "Bearer " + token }
                 });
 

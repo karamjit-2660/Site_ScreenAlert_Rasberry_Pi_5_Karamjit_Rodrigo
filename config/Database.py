@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 
 DB_CONFIG = {
-    "host": "192.168.1.100",
+    "host": "192.168.1.21",
     "port": 3306,
     "user": "root",
     "password": "",

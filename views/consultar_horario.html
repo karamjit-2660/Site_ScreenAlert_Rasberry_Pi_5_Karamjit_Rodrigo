@@ -13,11 +13,9 @@
     <div class="container-fluid">
         <div class="row">
 
-            <!-- MENU LATERAL -->
             <nav class="col-md-3 col-lg-2 d-md-block bg-black vh-100 position-fixed">
                 <div class="pt-4 px-3 text-white">
                     <h4 class="mb-4">Menu</h4>
-
                     <ul class="nav flex-column">
                         <li class="nav-item mb-2">
                             <a class="nav-link text-white" href="screen_alert.html">📨 Mensagens</a>
@@ -31,25 +29,21 @@
                         <li class="nav-item mb-2">
                             <a class="nav-link text-white" href="definicoes.html">⚙️ Definições</a>
                         </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link text-white" href="#" onclick="logout()">🚪 Logout</a>
+                        </li>
                     </ul>
                 </div>
             </nav>
 
-            <!-- CONTEÚDO -->
             <main class="col-md-9 ms-sm-auto col-lg-10 offset-md-3 offset-lg-2 vh-100 overflow-auto">
                 <div class="container py-4">
 
                     <h2 class="mb-4">📅 Horário de Medicamentos</h2>
 
-                    <!-- DIAS DA SEMANA -->
-                    <div class="d-flex gap-2 mb-4 flex-wrap" id="diasSemana">
-                        <!-- gerado pelo JS -->
-                    </div>
+                    <div class="d-flex gap-2 mb-4 flex-wrap" id="diasSemana"></div>
 
-                    <!-- LISTA DE MEDICAMENTOS DO DIA -->
-                    <div id="listaMedicamentos">
-                        <!-- gerado pelo JS -->
-                    </div>
+                    <div id="listaMedicamentos"></div>
 
                 </div>
             </main>
@@ -60,111 +54,129 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Dados de exemplo — no projeto real vêm da API Flask
-        const horarios = [
-            {
-                id: 1,
-                nome: "Paracetamol 500mg",
-                hora: "08:00",
-                dias: [1, 2, 3, 4, 5], // seg a sex
-                observacoes: "Tomar com água após o pequeno-almoço"
-            },
-            {
-                id: 2,
-                nome: "Omeprazol 20mg",
-                hora: "07:30",
-                dias: [0, 1, 2, 3, 4, 5, 6], // todos os dias
-                observacoes: "Tomar em jejum"
-            },
-            {
-                id: 3,
-                nome: "Vitamina D",
-                hora: "13:00",
-                dias: [0, 6], // fim de semana
-                observacoes: ""
-            },
-            {
-                id: 4,
-                nome: "Metformina 850mg",
-                hora: "20:00",
-                dias: [0, 1, 2, 3, 4, 5, 6],
-                observacoes: "Tomar com o jantar"
-            }
-        ];
+        const token = localStorage.getItem("token");
 
-        const nomesDias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-        const nomesDiasCompletos = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+        if (!token) {
+            window.location.href = "login.html";
+        }
 
-        let diaAtivo = new Date().getDay(); // dia atual por defeito
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+
+        const nomesDias = ["", "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+        const nomesDiasCompletos = ["", "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+        let diaAtivo = new Date().getDay() + 1; // 1=Domingo, 2=Segunda...
+        let todosHorarios = [];
 
         function renderDias() {
             const container = document.getElementById("diasSemana");
             container.innerHTML = "";
 
-            nomesDias.forEach((nome, i) => {
+            for (let i = 1; i <= 7; i++) {
                 const btn = document.createElement("button");
                 btn.className = "btn " + (i === diaAtivo ? "btn-primary" : "btn-outline-secondary");
-                btn.textContent = nome;
+                btn.textContent = nomesDias[i];
                 btn.onclick = () => {
                     diaAtivo = i;
                     renderDias();
                     renderMedicamentos();
                 };
                 container.appendChild(btn);
-            });
+            }
         }
 
         function renderMedicamentos() {
             const container = document.getElementById("listaMedicamentos");
 
-            const medicamentosDoDia = horarios
-                .filter(h => h.dias.includes(diaAtivo))
-                .sort((a, b) => a.hora.localeCompare(b.hora));
+            // agrupar por medicamento
+            const agrupados = {};
+            todosHorarios.forEach(row => {
+                if (!agrupados[row.id]) {
+                    agrupados[row.id] = {
+                        nome: row.name_medication,
+                        descricao: row.description_medication,
+                        dias: []
+                    };
+                }
+                agrupados[row.id].dias.push({ dia: row.day_of_doce, doce: row.doce });
+            });
+
+            const medicamentosDoDia = Object.values(agrupados).filter(med =>
+                med.dias.some(d => d.dia === diaAtivo)
+            );
 
             if (medicamentosDoDia.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-secondary">
                         <div class="card-body text-center py-5">
-                            <p class="fs-5 mb-0">Nenhum medicamento marcado para ${nomesDiasCompletos[diaAtivo]}.</p>
+                            <p class="fs-5 mb-0">Nenhum medicamento para ${nomesDiasCompletos[diaAtivo]}.</p>
                         </div>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = medicamentosDoDia.map(med => `
-                <div class="card bg-secondary mb-3">
-                    <div class="card-body d-flex align-items-center gap-4">
+            container.innerHTML = medicamentosDoDia.map(med => {
+                const diaInfo = med.dias.find(d => d.dia === diaAtivo);
+                return `
+                    <div class="card bg-secondary mb-3">
+                        <div class="card-body d-flex align-items-center gap-4">
 
-                        <!-- Hora -->
-                        <div class="text-center" style="min-width: 80px;">
-                            <div class="fw-bold fs-3 text-warning">${med.hora}</div>
+                            <div class="text-center" style="min-width: 100px;">
+                                <div class="fw-bold fs-4 text-warning">Cada ${diaInfo.doce}h</div>
+                            </div>
+
+                            <div class="vr"></div>
+
+                            <div class="flex-grow-1">
+                                <div class="fw-bold fs-5">Nome: ${med.nome}</div>
+                                ${med.descricao ? `<div class="text-white-50 mt-1"><small>Descrição: ${med.descricao}</small></div>` : ""}
+                            </div>
+
+                            <div class="d-flex gap-1 flex-wrap justify-content-end" style="max-width: 200px;">
+                                ${[1,2,3,4,5,6,7].map(i => `
+                                    <span class="badge ${med.dias.some(d => d.dia === i) ? "bg-primary" : "bg-dark border border-secondary text-secondary"}">${nomesDias[i]}</span>
+                                `).join("")}
+                            </div>
+
                         </div>
-
-                        <div class="vr"></div>
-
-                        <!-- Info -->
-                        <div class="flex-grow-1">
-                            <div class="fw-bold fs-5">💊 ${med.nome}</div>
-                            ${med.observacoes
-                                ? `<div class="text-white-50 mt-1"><small>📝 ${med.observacoes}</small></div>`
-                                : ""}
-                        </div>
-
-                        <!-- Dias activos -->
-                        <div class="d-flex gap-1 flex-wrap justify-content-end" style="max-width: 200px;">
-                            ${nomesDias.map((d, i) => `
-                                <span class="badge ${med.dias.includes(i) ? "bg-primary" : "bg-dark border border-secondary text-secondary"}">${d}</span>
-                            `).join("")}
-                        </div>
-
                     </div>
-                </div>
-            `).join("");
+                `;
+            }).join("");
         }
 
-        renderDias();
-        renderMedicamentos();
+        async function carregarHorario() {
+            try {
+                const res = await fetch("http://192.168.1.21:5000/horario", {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (res.status === 401) {
+                    localStorage.clear();
+                    window.location.href = "login.html";
+                    return;
+                }
+
+                const data = await res.json();
+                todosHorarios = data;
+                renderDias();
+                renderMedicamentos();
+
+            } catch (err) {
+                document.getElementById("listaMedicamentos").innerHTML = `
+                    <div class="card bg-secondary">
+                        <div class="card-body text-center py-5">
+                            <p class="fs-5 mb-0">Erro ao ligar ao servidor.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        carregarHorario();
     </script>
 
 </body>
